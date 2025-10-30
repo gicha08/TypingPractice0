@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Typing Rain — Stage Select Edition</title>
+<style>
+  body {
+    background: linear-gradient(#aee1f9, #ffffff);
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    text-align: center;
+  }
+  #gameArea {
+    position: relative;
+    width: 600px;
+    height: 400px;
+    margin: 30px auto;
+    border: 2px solid #333;
+    background: #f0f8ff;
+    overflow: hidden;
+  }
+  .word {
+    position: absolute;
+    font-size: 20px;
+    color: #333;
+    font-weight: bold;
+  }
+  #input {
+    width: 220px;
+    font-size: 18px;
+    margin-top: 15px;
+  }
+  #info {
+    margin-top: 10px;
+  }
+  #message {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0066cc;
+    margin-top: 20px;
+  }
+  #stageSelect {
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+
+<h2>🌧️ Typing Rain — Stage Select Edition 🌧️</h2>
+
+<!-- Stage Selection -->
+<div id="stageSelect">
+  <label for="stageInput">Select Stage (1–10): </label>
+  <input type="number" id="stageInput" min="1" max="10" value="1">
+  <button id="startBtn">Start Game</button>
+</div>
+
+<!-- Game Area -->
+<div id="gameArea" style="display:none;"></div>
+
+<input type="text" id="input" placeholder="Type here..." autofocus style="display:none;">
+<div id="info" style="display:none;">
+  Stage: <span id="stage">1</span> |
+  Score: <span id="score">0</span> |
+  Lives: <span id="lives">5</span>
+</div>
+<div id="message"></div>
+
+<script>
+/* --- Word Lists by Stage --- */
+const wordLists = [
+  // Stage 1: very short, common
+  ["cat","dog","sun","car","run","bee","box","toy","egg","sky","fan","bus","cow","hat","cup","fox","log","bat","pen","map"],
+  // Stage 2
+  ["book","fish","jump","milk","ball","game","door","lamp","tree","star","desk","cake","ship","wind","rain","sock","coat","shoe","frog","road"],
+  // Stage 3
+  ["apple","river","music","chair","green","light","horse","house","dream","table","bread","beach","grass","earth","snake","stone","sugar","field","queen","plane"],
+  // Stage 4
+  ["flower","window","school","planet","summer","silver","bridge","bottle","candle","forest","coffee","camera","letter","orange","rocket","market","butter","island","rabbit","doctor"],
+  // Stage 5
+  ["mountain","computer","holiday","library","machine","diamond","monster","battery","picture","kitchen","captain","blanket","sandwich","harvest","fortune","festival","treasure","weather","lantern","village"],
+  // Stage 6
+  ["astronomy","chemistry","elephant","character","adventure","language","umbrella","calendar","airplane","hospital","vacation","geometry","volcano","adoption","customer","ceremony","umbrella","delivery","musician","strategy"],
+  // Stage 7
+  ["university","dictionary","microscope","basketball","photograph","instrument","chocolate","experiment","television","backpacker","revolution","population","limitation","foundation","reflection","helicopter","definition","translator","document","attention"],
+  // Stage 8
+  ["electricity","organization","architecture","application","imagination","performance","relationship","temperature","environment","celebration","observation","development","possibility","recreation","destination","philosophy","foundation","communication","generation","appreciation"],
+  // Stage 9
+  ["responsibility","transportation","identification","announcement","consideration","refrigerator","presentation","determination","conversation","administration","documentation","transformation","circumstance","classification","recommendation","introduction","authentication","implementation","cooperation","conversation"],
+  // Stage 10
+  ["characterization","incompatibility","interrelationship","unconstitutional","representative","recommendation","international","circumstances","misunderstanding","counterproductive","instrumentation","reconstruction","interpretation","sustainability","acknowledgment","intercommunication","differentiation","synchronization","characteristics","revolutionary"]
+];
+
+/* --- DOM Elements --- */
+const gameArea = document.getElementById('gameArea');
+const input = document.getElementById('input');
+const scoreDisplay = document.getElementById('score');
+const livesDisplay = document.getElementById('lives');
+const stageDisplay = document.getElementById('stage');
+const message = document.getElementById('message');
+const startBtn = document.getElementById('startBtn');
+const stageInput = document.getElementById('stageInput');
+const stageSelectDiv = document.getElementById('stageSelect');
+const info = document.getElementById('info');
+
+let activeWords = [];
+let score = 0;
+let lives = 5;
+let stage = 1;
+let wordsSpawned = 0;
+let wordsPerStage = 30;
+let spawnInterval, gameLoopInterval;
+
+/* --- Game Logic --- */
+function startStage() {
+  stageSelectDiv.style.display = 'none';
+  gameArea.style.display = 'block';
+  input.style.display = 'inline-block';
+  info.style.display = 'block';
+  message.textContent = `Stage ${stage} Start!`;
+  setTimeout(() => message.textContent = '', 2000);
+
+  wordsSpawned = 0;
+  activeWords = [];
+  gameArea.innerHTML = '';
+  input.value = '';
+
+  const fallSpeed = 1 + stage * 0.5; // falling speed
+  const spawnRate = Math.max(1000 - stage * 80, 300); // word spawn rate
+
+  spawnInterval = setInterval(() => {
+    if (wordsSpawned < wordsPerStage) {
+      spawnWord();
+      wordsSpawned++;
+    } else {
+      clearInterval(spawnInterval);
+    }
+  }, spawnRate);
+
+  gameLoopInterval = setInterval(() => gameLoop(fallSpeed), 100);
+}
+
+function spawnWord() {
+  const list = wordLists[Math.min(stage - 1, wordLists.length - 1)];
+  const word = list[Math.floor(Math.random() * list.length)];
+  const x = Math.random() * (gameArea.clientWidth - 100);
+  const span = document.createElement('div');
+  span.textContent = word;
+  span.className = 'word';
+  span.style.left = x + 'px';
+  span.style.top = '0px';
+  gameArea.appendChild(span);
+  activeWords.push({ word, element: span, y: 0 });
+}
+
+function gameLoop(speed) {
+  for (let i = activeWords.length - 1; i >= 0; i--) {
+    const w = activeWords[i];
+    w.y += speed;
+    w.element.style.top = w.y + 'px';
+
+    if (w.y > gameArea.clientHeight - 20) {
+      gameArea.removeChild(w.element);
+      activeWords.splice(i, 1);
+      lives--;
+      livesDisplay.textContent = lives;
+      if (lives <= 0) return gameOver();
+    }
+  }
+
+  // Stage clear condition
+  if (wordsSpawned >= wordsPerStage && activeWords.length === 0) {
+    clearInterval(spawnInterval);
+    clearInterval(gameLoopInterval);
+    if (stage < 10) {
+      message.textContent = `🎉 Stage ${stage} Clear!`;
+      stage++;
+      stageDisplay.textContent = stage;
+      setTimeout(() => {
+        message.textContent = '';
+        startStage();
+      }, 2500);
+    } else {
+      message.textContent = `🏆 Congratulations! You’ve beaten all 10 stages!`;
+    }
+  }
+}
+
+function gameOver() {
+  clearInterval(spawnInterval);
+  clearInterval(gameLoopInterval);
+  alert(`💀 Game Over! Final score: ${score}`);
+  location.reload();
+}
+
+input.addEventListener('input', () => {
+  const typed = input.value.trim().toLowerCase();
+  const foundIndex = activeWords.findIndex(w => w.word === typed);
+  if (foundIndex >= 0) {
+    gameArea.removeChild(activeWords[foundIndex].element);
+    activeWords.splice(foundIndex, 1);
+    score += 10;
+    scoreDisplay.textContent = score;
+    input.value = '';
+  }
+});
+
+startBtn.addEventListener('click', () => {
+  const chosenStage = parseInt(stageInput.value);
+  if (chosenStage >= 1 && chosenStage <= 10) {
+    stage = chosenStage;
+    stageDisplay.textContent = stage;
+    startStage();
+  } else {
+    alert('Please select a stage between 1 and 10.');
+  }
+});
+</script>
+</body>
+</html>
