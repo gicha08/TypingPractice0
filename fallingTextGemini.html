@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raining Words</title>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+            overflow: hidden; /* Prevent body scrolling */
+        }
+
+        /* Game Container */
+        #game-container {
+            width: 90vw;
+            max-width: 800px;
+            height: 90vh; /* Taller for better falling effect */
+            max-height: 700px;
+            background: #ffffff;
+            border: 2px solid #ced4da;
+            border-radius: 12px; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Top UI Bar */
+        .ui-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            gap: 10px;
+            padding: 12px 20px;
+            background: #e9ecef;
+            border-bottom: 2px solid #ced4da;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .ui-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        #lives {
+            color: #e74c3c; /* Red hearts */
+            font-size: 1.2rem;
+        }
+        
+        #score, #stage {
+            color: #007bff; /* Blue for score/stage */
+        }
+
+        /* Game Area */
+        #sky {
+            flex-grow: 1;
+            background: linear-gradient(to bottom, #87ceeb 0%, #f0f8ff 80%); /* Sky gradient */
+            position: relative;
+            overflow: hidden;
+            border-bottom: 2px dashed #add8e6;
+        }
+
+        #ground {
+            height: 40px;
+            background: #8b4513; /* Brown ground */
+            background-image: linear-gradient(to right, #8b4513, #a0522d);
+            border-top: 4px solid #5c2e00; /* Darker top edge */
+            position: relative;
+            z-index: 2; /* Ensures ground is on top of sky */
+        }
+
+        /* Typing Input */
+        #typing-input {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 1.2rem;
+            border: none;
+            border-top: 2px solid #ced4da;
+            box-sizing: border-box; /* Correct padding behavior */
+            border-radius: 0 0 10px 10px; /* Match container bottom */
+            outline: none;
+            transition: box-shadow 0.2s ease;
+        }
+
+        #typing-input:focus {
+            box-shadow: 0 0 12px 3px #87ceeb; /* Glow effect on focus */
+            z-index: 3; /* Ensure glow is visible */
+        }
+        
+        #typing-input:disabled {
+            background: #f8f9fa;
+        }
+
+        /* Falling Words */
+        .word {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 5px 10px;
+            border-radius: 6px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #212529;
+            user-select: none;
+            /* Animation is handled by JS transform */
+        }
+
+        /* Message Overlay */
+        #message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #message-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #message-overlay h2 {
+            margin: 0 0 20px 0;
+            font-size: 2.2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Controls: Button and Stage Select */
+        #start-btn {
+            padding: 12px 24px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            background-color: #28a745; /* Green */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        #start-btn:hover {
+            background-color: #218838; /* Darker green */
+        }
+        
+        #start-btn:active {
+            transform: scale(0.98);
+        }
+
+        #stage-select-container {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        #stage-select {
+            padding: 8px 12px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-left: 8px;
+            background: #fff;
+        }
+        
+        /* Feedback for correct words */
+        .feedback {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 5;
+            opacity: 1;
+            transition: opacity 1s, transform 1s;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+
+        .feedback.success {
+            color: #28a745;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            #game-container {
+                width: 100vw;
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                border: none;
+            }
+            
+            .ui-bar {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            #lives {
+                font-size: 1rem;
+            }
+            
+            .word {
+                font-size: 1rem;
+                padding: 4px 8px;
+            }
+            
+            #typing-input {
+                font-size: 1rem;
+                padding: 12px 15px;
+            }
+            
+            #message-overlay h2 {
+                font-size: 1.5rem;
+            }
+            
+            #start-btn {
+                padding: 10px 20px;
+                font-size: 1.1rem;
+            }
+            
+            #stage-select-container {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Top UI Bar -->
+        <div class="ui-bar">
+            <div class="ui-stat">
+                <span>Score:</span>
+                <span id="score">0</span>
+            </div>
+            <div class="ui-stat">
+                <span>Stage:</span>
+                <span id="stage">1</span>
+            </div>
+            <div class="ui-stat">
+                <span>Lives:</span>
+                <span id="lives">❤️❤️❤️❤️❤️</span>
+            </div>
+        </div>
+
+        <!-- Game Area -->
+        <div id="sky">
+            <!-- Words will be dynamically added here -->
+        </div>
+        <div id="ground"></div>
+
+        <!-- Input Area -->
+        <input type="text" id="typing-input" placeholder="Type the word and press Enter..." disabled>
+
+        <!-- Message Overlay (for Start/Game Over/Stage Clear) -->
+        <div id="message-overlay">
+            <div id="message-content">
+                <h2>Welcome to Raining Words!</h2>
+                <button id="start-btn">Start Game</button>
+                <div id="stage-select-container">
+                    <label for="stage-select">Start from:</label>
+                    <select id="stage-select">
+                        <!-- Options will be added by JS -->
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // A single, unified word list sorted by approximate difficulty (length)
+        const UNIFIED_WORD_LIST = [
+            // Stage 1 (3-4 letters)
+            "sun", "cat", "dog", "run", "eat", "fly", "big", "red", "cup", "pen", "hat", "car", "key", "box", "joy", "sky", "tea", "win", "yes", "no", "top", "bed", "ant", "jam", "log", "map", "net", "owl", "pie", "zip",
+            // Stage 2 (4 letters)
+            "blue", "fish", "tree", "book", "play", "jump", "walk", "sing", "stop", "boat", "moon", "star", "fire", "duck", "frog", "hand", "ball", "door", "face", "milk", "rain", "road", "rock", "sand", "ship", "snow", "soap", "song", "time", "wind",
+            // Stage 3 (5 letters)
+            "apple", "grape", "house", "mouse", "light", "right", "world", "earth", "water", "stone", "smile", "happy", "dance", "dream", "music", "party", "queen", "robot", "snake", "sugar", "table", "tiger", "train", "watch", "whale", "white", "woman", "young", "zebra", "cloud",
+            // Stage 4 (5-6 letters)
+            "banana", "orange", "friend", "family", "school", "purple", "yellow", "green", "circle", "square", "bridge", "bottle", "button", "camera", "cheese", "chicken", "coffee", "cookie", "country", "doctor", "flower", "forest", "future", "garden", "glass", "hammer", "jacket", "kitten", "leader", "letter",
+            // Stage 5 (6 letters)
+            "people", "planet", "potato", "rabbit", "rocket", "shadow", "silver", "spider", "station", "stream", "street", "summer", "system", "tomato", "travel", "turtle", "window", "winter", "yellow", "answer", "before", "around", "always", "become", "change", "create", "dragon", "energy", "escape", "famous",
+            // Stage 6 (7 letters)
+            "picture", "example", "morning", "evening", "holiday", "journey", "kitchen", "library", "message", "million", "monster", "natural", "nothing", "outside", "package", "parking", "perfect", "problem", "promise", "quality", "question", "receive", "remember", "science", "section", "special", "station", "storage", "success", "support",
+            // Stage 7 (7-8 letters)
+            "amazing", "beautiful", "building", "business", "calendar", "capacity", "category", "champion", "chemical", "computer", "continue", "creation", "creative", "customer", "dangerous", "decision", "delivery", "different", "difficult", "distance", "document", "education", "electric", "employee", "engineer", "exercise", "expensive", "explorer", "familiar", "flexible",
+            // Stage 8 (8 letters)
+            "favorite", "festival", "friendly", "generate", "government", "hospital", "important", "increase", "industry", "interest", "language", "location", "magazine", "material", "mountain", "negative", "official", "operator", "opposite", "original", "painting", "personal", "physical", "positive", "possible", "powerful", "pressure", "previous", "property", "purchase",
+            // Stage 9 (9 letters)
+            "adventure", "algorithm", "attention", "available", "breakfast", "challenge", "character", "community", "condition", "confident", "connected", "construct", "delicious", "direction", "discovery", "effective", "eliminate", "emotional", "establish", "evolution", "expansion", "expensive", "fantastic", "financial", "formation", "fortunate", "framework", "frequency", "furniture", "generation",
+            // Stage 10 (10+ letters)
+            "accommodation", "advertisement", "congratulation", "communication", "concentration", "conference", "construction", "contribution", "convenient", "conversation", "corporation", "development", "disappointment", "distribution", "environment", "establishment", "explanation", "extraordinary", "fundamental", "imagination", "implementation", "independence", "information", "infrastructure", "intelligence", "international", "introduction", "investigation", "organization", "participation"
+        ];
+        
+        // Game Constants
+        const WORDS_PER_STAGE = 30;
+        const INITIAL_LIVES = 5;
+        const WORDS_PER_DIFFICULTY_CHUNK = 30; // Each "original" stage had 30 words
+        const NUM_STAGES = 10;
+
+        // DOM Elements
+        const sky = document.getElementById('sky');
+        const ground = document.getElementById('ground');
+        const input = document.getElementById('typing-input');
+        const scoreDisplay = document.getElementById('score');
+        const livesDisplay = document.getElementById('lives');
+        const stageDisplay = document.getElementById('stage');
+        const messageOverlay = document.getElementById('message-overlay');
+        const messageContent = document.getElementById('message-content');
+        const startBtn = document.getElementById('start-btn');
+        const stageSelect = document.getElementById('stage-select');
+
+        // Game State
+        let lives = INITIAL_LIVES;
+        let score = 0;
+        let currentStage = 1;
+        let wordsOnScreen = []; // Array of {word, element, y, speed}
+        let wordsGeneratedThisStage = 0;
+        let isGameOver = true;
+        let animationFrameId = null;
+        let wordGenerationTimeoutId = null;
+        let lastTimestamp = 0;
+        let groundTop = 0; // Will be calculated on start
+
+        // --- Game Logic ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateStageSelect();
+            startBtn.addEventListener('click', startGame);
+            input.addEventListener('keydown', handleTyping);
+        });
+ 
+        function populateStageSelect() {
+            for (let i = 1; i <= NUM_STAGES; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Stage ${i}`;
+                stageSelect.appendChild(option);
+            }
+        }
+
+        function initGame() {
+            lives = INITIAL_LIVES;
+            score = 0;
+            currentStage = parseInt(stageSelect.value, 10) || 1;
+            wordsOnScreen = [];
+            wordsGeneratedThisStage = 0;
+            isGameOver = false;
+            
+            // Clear any existing words from sky
+            sky.innerHTML = '';
+            
+            // Reset UI
+            updateUI();
+            messageOverlay.classList.add('hidden');
+            input.value = '';
+            input.disabled = false;
+            input.focus();
+            
+            // Calculate ground position
+            const skyRect = sky.getBoundingClientRect();
+            const groundRect = ground.getBoundingClientRect();
+            groundTop = groundRect.top - skyRect.top;
+        }
+
+        function startGame() {
+            initGame();
+            
+            // Stop any previous game loops
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            if (wordGenerationTimeoutId) {
+                clearTimeout(wordGenerationTimeoutId);
+            }
+            
+            lastTimestamp = 0;
+            animationFrameId = requestAnimationFrame(gameLoop);
+            scheduleWordGeneration();
+        }
+
+        function scheduleWordGeneration() {
+            if (isGameOver || wordsGeneratedThisStage >= WORDS_PER_STAGE) {
+                return;
+            }
+            
+            // Generate a word at a random interval, faster for higher stages
+            const minDelay = Math.max(500, 2000 - currentStage * 150);
+            const maxDelay = Math.max(1000, 4000 - currentStage * 200);
+            const delay = Math.random() * (maxDelay - minDelay) + minDelay;
+            
+            wordGenerationTimeoutId = setTimeout(() => {
+                if (!isGameOver) {
+                    generateWord();
+                    scheduleWordGeneration();
+                }
+            }, delay);
+        }
+
+        function generateWord() {
+            if (isGameOver || wordsGeneratedThisStage >= WORDS_PER_STAGE) {
+                return;
+            }
+
+            // --- New Word Generation Logic ---
+            // Calculate the "slice" of the array to pick from.
+            // Stage 1: 0-30
+            // Stage 2: 10-40 (overlaps with 1)
+            // Stage 3: 20-50 (overlaps with 2)
+            // ...
+            // Stage 10: 90-120 (or to end of list)
+
+            // Determine the starting index for this stage
+            // We'll use a slightly different range to get overlap
+            // Let's say each stage "unlocks" 20 new words and keeps 10 old
+            const wordRangePerStage = 25; // How many new words to introduce index-wise
+            const wordListSize = 40; // The total pool size for this stage
+
+            // Calculate start index, ensuring it doesn't go below 0
+            let startIndex = Math.max(0, (currentStage - 1) * wordRangePerStage - 10);
+            
+            // Calculate end index, ensuring it doesn't exceed the list length
+            let endIndex = Math.min(startIndex + wordListSize, UNIFIED_WORD_LIST.length);
+
+            // If start index + size goes over, adjust start index back
+            if (endIndex >= UNIFIED_WORD_LIST.length) {
+                startIndex = Math.max(0, UNIFIED_WORD_LIST.length - wordListSize);
+                endIndex = UNIFIED_WORD_LIST.length;
+            }
+
+            // Get a random index *within the calculated slice*
+            const wordIndex = Math.floor(Math.random() * (endIndex - startIndex)) + startIndex;
+            const word = UNIFIED_WORD_LIST[wordIndex];
+            // --- End of New Word Generation Logic ---
+            
+            const wordEl = document.createElement('div');
+            wordEl.className = 'word';
+            wordEl.textContent = word;
+            
+            const skyRect = sky.getBoundingClientRect();
+            // Estimate width based on font size (1.1rem ~ 17.6px * 0.6 avg char width)
+            const wordWidth = word.length * 17.6 * 0.6; 
+            const maxLeft = skyRect.width - wordWidth - 20; // 10px padding
+            const leftPos = Math.max(10, Math.random() * maxLeft);
+            
+            wordEl.style.left = `${leftPos}px`;
+            wordEl.style.transform = `translateY(0px)`;
+            
+            sky.appendChild(wordEl);
+            
+            // Speed in pixels per second
+            const baseSpeed = 25 + (currentStage * 6); 
+            const wordSpeed = baseSpeed + (Math.random() * 10 * (currentStage / 2));
+            
+            const wordData = {
+                word: word,
+                element: wordEl,
+                y: 0,
+                speed: wordSpeed // pixels per second
+            };
+            
+            wordsOnScreen.push(wordData);
+            wordsGeneratedThisStage++;
+        }
+
+        function gameLoop(timestamp) {
+            if (isGameOver) {
+                return;
+            }
+
+            if (!lastTimestamp) {
+                lastTimestamp = timestamp;
+            }
+            const deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+
+            for (let i = wordsOnScreen.length - 1; i >= 0; i--) {
+                const wordData = wordsOnScreen[i];
+                
+                // Calculate movement based on delta time
+                wordData.y += (wordData.speed * deltaTime) / 1000; // speed is px/sec
+                
+                // Check for ground collision
+                // We check the *bottom* of the word element
+                const wordHeight = wordData.element.offsetHeight || 28; // Approx height
+                if (wordData.y + wordHeight >= groundTop) {
+                    // Hit ground
+                    lives--;
+                    wordData.element.remove();
+                    wordsOnScreen.splice(i, 1);
+                    
+                    if (lives <= 0) {
+                        endGame();
+                        break; // Stop loop
+                    }
+                    updateUI();
+                } else {
+                    // Only update transform if not hit
+                    wordData.element.style.transform = `translateY(${wordData.y}px)`;
+                }
+            }
+            
+            // Check for stage clear *after* processing all words
+            if (!isGameOver && wordsGeneratedThisStage >= WORDS_PER_STAGE && wordsOnScreen.length === 0) {
+                moveToNextStage();
+            } else {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function handleTyping(e) {
+            if (e.key === 'Enter') {
+                if (isGameOver) return;
+
+                const typedWord = input.value.trim();
+                input.value = '';
+
+                if (!typedWord) return;
+
+                let found = false;
+                // Find the word on screen (check from bottom up)
+                for (let i = wordsOnScreen.length - 1; i >= 0; i--) {
+                    if (wordsOnScreen[i].word === typedWord) {
+                        // Match!
+                        const matchedWordData = wordsOnScreen[i];
+                        matchedWordData.element.remove();
+                        wordsOnScreen.splice(i, 1);
+                        
+                        score++;
+                        updateUI();
+                        
+                        // Show feedback at the word's last position
+                        showFeedback(`+1`, 'success', matchedWordData.element.style.left, matchedWordData.y);
+                        
+                        found = true;
+                        break; // We found a match, stop checking
+                    }
+                }
+                
+                if (!found) {
+                    // Optional: penalty or sound for wrong word
+                }
+            }
+        }
+        
+        function showFeedback(text, type, x, y) {
+            const feedbackEl = document.createElement('div');
+            feedbackEl.className = `feedback ${type}`;
+            feedbackEl.textContent = text;
+            
+            sky.appendChild(feedbackEl);
+            
+            // Position it where the word was
+            feedbackEl.style.left = x;
+            feedbackEl.style.transform = `translateY(${y}px) scale(1.2)`;
+            feedbackEl.style.opacity = '1';
+            
+            // Animate out
+            setTimeout(() => {
+                feedbackEl.style.transform = `translateY(${y - 50}px) scale(0.5)`;
+                feedbackEl.style.opacity = '0';
+            }, 100);
+            
+            // Remove from DOM
+            setTimeout(() => {
+                feedbackEl.remove();
+            }, 1100);
+        }
+
+        function moveToNextStage() {
+            // Stop game loops
+            cancelAnimationFrame(animationFrameId);
+            clearTimeout(wordGenerationTimeoutId);
+            
+            currentStage++;
+            
+            if (currentStage > NUM_STAGES) {
+                // Game Won!
+                showMessage(`<h2>Congratulations!</h2><p>You've cleared all ${NUM_STAGES} stages!</p><p>Final Score: ${score}</p>`);
+                isGameOver = true;
+                input.disabled = true;
+            } else {
+                // Show message and move to next stage
+                showMessage(`<h2>Stage ${currentStage - 1} Cleared!</h2><p>Get ready for Stage ${currentStage}...</p>`);
+                
+                setTimeout(() => {
+                    wordsGeneratedThisStage = 0;
+                    updateUI(); // Update stage display
+                    messageOverlay.classList.add('hidden');
+                    
+                    // Restart loops
+                    lastTimestamp = 0;
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                    scheduleWordGeneration();
+                    input.focus();
+                }, 2500); // Wait for message
+            }
+        }
+
+        function endGame() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrameId);
+            clearTimeout(wordGenerationTimeoutId);
+            
+            input.disabled = true;
+            showMessage(`<h2>Game Over!</h2><p>Final Score: ${score}</p><p>You reached Stage ${currentStage}.</p>`);
+        }
+
+        // This function was defined twice, causing a syntax error.
+        // The first, broken definition has been removed.
+        function showMessage(htmlContent) {
+            const isFirstLoad = !document.getElementById('start-btn-overlay');
+            
+            let buttonText = isGameOver ? 'Play Again' : 'Start Game';
+            if (!isFirstLoad) buttonText = 'Play Again'; // After first load, it's always "Play Again"
+            
+            messageContent.innerHTML = `
+                ${htmlContent}
+                <button id="start-btn-overlay">${buttonText}</button>
+                <div id="stage-select-container">
+                    <label for="stage-select-overlay">Start from:</label>
+                    <select id="stage-select-overlay">
+                        <!-- Options will be added by JS -->
+                    </select>
+                </div>`;
+
+            const overlayBtn = document.getElementById('start-btn-overlay');
+            const overlaySelect = document.getElementById('stage-select-overlay');
+
+            // Populate the overlay's select box
+            for (let i = 1; i <= NUM_STAGES; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Stage ${i}`;
+                let selectedStage = (currentStage > NUM_STAGES) ? NUM_STAGES : currentStage;
+                if (i == selectedStage) {
+                    option.selected = true;
+                }
+                overlaySelect.appendChild(option);
+            }
+            
+            // When the overlay button is clicked, update the *main* select and start
+            overlayBtn.addEventListener('click', () => {
+                stageSelect.value = overlaySelect.value; // Sync values
+                startGame();
+            });
+            
+            messageOverlay.classList.remove('hidden');
+        }
+        
+        // This is the initial message on load
+        showMessage(`<h2>Welcome to Raining Words!</h2>`);
+
+
+        function updateUI() {
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives > 0 ? '❤️'.repeat(lives) : '💔';
+            stageDisplay.textContent = currentStage;
+        }
+
+    </script>
+</body>
+</html>
+
+
+

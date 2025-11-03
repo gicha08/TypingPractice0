@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Typing Rain Game</title>
+<style>
+  body {
+    background: linear-gradient(#aee1f9, #ffffff);
+    overflow: hidden;
+    font-family: sans-serif;
+    text-align: center;
+  }
+  #gameArea {
+    position: relative;
+    width: 600px;
+    height: 400px;
+    margin: 30px auto;
+    border: 2px solid #333;
+    background: #f0f8ff;
+  }
+  .word {
+    position: absolute;
+    font-size: 20px;
+    color: #333;
+    font-weight: bold;
+  }
+  #input {
+    width: 200px;
+    font-size: 18px;
+    margin-top: 15px;
+  }
+  #info {
+    margin-top: 10px;
+  }
+  #stageSelect {
+    font-size: 16px;
+    padding: 5px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>🌧️ Typing Rain Game 🌧️</h2>
+
+<select id="stageSelect">
+  <option value="1">Start from Stage 1</option>
+  <option value="2">Start from Stage 2</option>
+  <option value="3">Start from Stage 3</option>
+  <option value="4">Start from Stage 4</option>
+  <option value="5">Start from Stage 5</option>
+  <option value="6">Start from Stage 6</option>
+  <option value="7">Start from Stage 7</option>
+  <option value="8">Start from Stage 8</option>
+  <option value="9">Start from Stage 9</option>
+  <option value="10">Start from Stage 10</option>
+</select>
+<button id="startBtn">Start Game</button>
+
+<div id="gameArea"></div>
+<input type="text" id="input" placeholder="Type here..." autofocus />
+<div id="info">Stage: <span id="stage">1</span> | Score: <span id="score">0</span> | Lives: <span id="lives">5</span></div>
+
+<script>
+const allWords = [
+  // Simple short words
+  "cat","dog","sun","tree","book","car","rain","milk","shoe","bird","door","fish","star","apple","green","water",
+  // Medium words
+  "pencil","rocket","window","orange","planet","camera","friend","button","castle","rabbit","circle","flower","butter","garden","silver",
+  // Harder words
+  "mountain","computer","keyboard","elephant","triangle","language","building","umbrella","dinosaur","backpack","calendar","sandwich","airplane",
+  // Very hard words
+  "university","microphone","dictionary","instrument","strawberry","imagination","adventure","electricity","information","programming",
+  "architecture","congratulate","responsibility","communication","extraordinary"
+];
+
+const gameArea = document.getElementById('gameArea');
+const input = document.getElementById('input');
+const scoreDisplay = document.getElementById('score');
+const livesDisplay = document.getElementById('lives');
+const stageDisplay = document.getElementById('stage');
+const stageSelect = document.getElementById('stageSelect');
+const startBtn = document.getElementById('startBtn');
+
+let activeWords = [];
+let score = 0;
+let lives = 5;
+let stage = 1;
+let totalSpawned = 0;
+let spawnInterval, gameInterval;
+const wordsPerStage = 30;
+let spawnRate = 1500; // slower spawn rate
+
+function startGame() {
+  stage = parseInt(stageSelect.value);
+  resetGame();
+  stageDisplay.textContent = stage;
+  spawnWords();
+  gameInterval = setInterval(gameLoop, 100);
+}
+
+function resetGame() {
+  clearInterval(spawnInterval);
+  clearInterval(gameInterval);
+  activeWords.forEach(w => w.element.remove());
+  activeWords = [];
+  totalSpawned = 0;
+  lives = 5;
+  score = 0;
+  livesDisplay.textContent = lives;
+  scoreDisplay.textContent = score;
+}
+
+function spawnWords() {
+  spawnInterval = setInterval(() => {
+    if (totalSpawned >= wordsPerStage) return;
+    spawnWord();
+    totalSpawned++;
+    if (totalSpawned >= wordsPerStage) {
+      clearInterval(spawnInterval);
+    }
+  }, spawnRate);
+}
+
+function spawnWord() {
+  // Choose difficulty slice based on stage
+  const portion = Math.floor(allWords.length / 10);
+  const startIdx = Math.max(0, (stage - 1) * portion * 0.8);
+  const endIdx = Math.min(allWords.length, startIdx + portion * 1.5);
+  const word = allWords[Math.floor(Math.random() * (endIdx - startIdx)) + startIdx];
+  
+  const x = Math.random() * (gameArea.clientWidth - 80);
+  const y = 0;
+
+  const span = document.createElement('div');
+  span.textContent = word;
+  span.className = 'word';
+  span.style.left = x + 'px';
+  span.style.top = y + 'px';
+  gameArea.appendChild(span);
+
+  activeWords.push({ word, element: span, y });
+}
+
+function gameLoop() {
+  activeWords.forEach((w, i) => {
+    w.y += 2;
+    w.element.style.top = w.y + 'px';
+
+    if (w.y > gameArea.clientHeight - 20) {
+      gameArea.removeChild(w.element);
+      activeWords.splice(i, 1);
+      lives--;
+      livesDisplay.textContent = lives;
+      if (lives <= 0) gameOver();
+    }
+  });
+
+  // Move to next stage when all words are cleared
+  if (totalSpawned >= wordsPerStage && activeWords.length === 0) {
+    nextStage();
+  }
+}
+
+function nextStage() {
+  clearInterval(spawnInterval);
+  clearInterval(gameInterval);
+  if (stage >= 10) {
+    alert(`🎉 Congratulations! You completed all stages! Final Score: ${score}`);
+    location.reload();
+    return;
+  }
+  alert(`✅ Stage ${stage} cleared! Moving to Stage ${stage + 1}`);
+  stage++;
+  stageDisplay.textContent = stage;
+  totalSpawned = 0;
+  spawnWords();
+  gameInterval = setInterval(gameLoop, 100);
+}
+
+function gameOver() {
+  alert(`💀 Game Over! Final Score: ${score}`);
+  location.reload();
+}
+
+input.addEventListener('input', () => {
+  const typed = input.value.trim().toLowerCase();
+  const foundIndex = activeWords.findIndex(w => w.word === typed);
+  if (foundIndex >= 0) {
+    gameArea.removeChild(activeWords[foundIndex].element);
+    activeWords.splice(foundIndex, 1);
+    score += 10;
+    scoreDisplay.textContent = score;
+    input.value = '';
+  }
+});
+
+startBtn.addEventListener('click', startGame);
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+(in chatGPT)
+I like to make a game using just a HTML file to let user pracice typing.  Here is my idea.
+
+English words are generated and fall from the top of the screen (considered 'sky') at a certain speed. There is an input area where user should type the words before they fall to the ground. If a word falls to the ground, you lose a life. If you lose 5 lives, the game is over.
+
+Can you have multiple stages start from stage 1. In low stages, words are short and easy to type. Each stage about 30 words are generated. As you clear a stage, congratulate and move on the next stage. Words are harder and longer. How about having 10 stages?
+
+Can you let the user select the stage to start from? And generate a little more diverse words please.
+
+Can you use just one list of words in increasing difficulty level and select a word in earlier part of the list on early stages and select a word in later part of the list on later stages? That way you may have words with mixed difficulty in each stage.
+
+(additional prompt in chatGPT)
+Can you decrease the spawnRate a bit?
+
+---
+
+(in Gemini)
+I like to make a game using just a HTML file to let user pracice typing.  Here is my idea.
+
+English words are generated and fall from the top of the screen (considered 'sky') at a certain speed. There is an input area where user should type the words before they fall to the ground. If a word falls to the ground, you lose a life. If you lose 5 lives, the game is over.
+
+Can you have multiple stages start from stage 1. In low stages, words are short and easy to type. Each stage about 30 words are generated. As you clear a stage, congratulate and move on the next stage. Words are harder and longer. How about having 10 stages?
+
+Can you let the user select the stage to start from? And generate a little more diverse words please.
+
+Can you use just one list of words in increasing difficulty level and select a word in earlier part of the list on early stages and select a word in later part of the list on later stages? That way you may have words with mixed difficulty in each stage.
+
+(additional prompt in Gemini)
+Let's change the name as 'Raining Words'
